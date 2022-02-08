@@ -1,2 +1,0 @@
-"0","svc_cv <- tune(svm,y ~., data = dat, kernel = 'linear',"
-"0","                   ranges = list(cost = c(.001, .01, .1, 1, 5, 10, 100)))"

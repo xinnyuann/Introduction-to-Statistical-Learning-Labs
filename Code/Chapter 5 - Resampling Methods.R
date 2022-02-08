@@ -10,7 +10,9 @@ library("boot") #cv.glm()
 
 #We randomly generate a vector of integers to tell us how to divide up our data
 attach(Auto)
-train <- sample(392,196)
+nrow(Auto)
+# sample 196 numbers for indices, 50%
+train <- sample(nrow(Auto),196)
 
 #Fit the model with the training set, and find the calculate the mean squared erroro
 lm.fit <- lm(mpg ~ horsepower, data = Auto, subset = train)

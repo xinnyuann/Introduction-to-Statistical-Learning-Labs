@@ -1,3 +1,0 @@
-"0","rm(list = ls(all = TRUE))"
-"0","libs <- c(""tidyverse"", ""ISLR"", ""modelr"")"
-"0","invisible(lapply(libs, library, character.only = TRUE))"

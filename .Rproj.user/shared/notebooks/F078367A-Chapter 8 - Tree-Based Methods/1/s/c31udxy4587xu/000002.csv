@@ -1,2 +1,0 @@
-"0","# Set up initial tree"
-"0","tree <- tree(high ~ . -sales, data)"

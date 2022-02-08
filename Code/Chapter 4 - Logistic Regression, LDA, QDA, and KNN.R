@@ -5,7 +5,8 @@
 library("MASS") #lda()
 library("ISLR") #location of Smarket data
 library("class") #knn()
-
+library(dplyr)
+library(caret)
 #Note - 4.6.1 is integrated into 4.6.2 because of length
 
 ###### 4.6.2 - Logistic Regression ######
@@ -21,14 +22,16 @@ attach(Smarket)
 
 names(Smarket) #Lag1 - Lag5 indicate the percentage returns for each of the five previous trading days
 dim(Smarket)
+glimpse(Smarket)
 summary(Smarket)
 cor(Smarket[,-9]) #The 9th column variable, Direction, is qualitative so it should be excluded from our correlation matrix
 
-plot(volume)
+plot(volume,cex=.5)
 
 #We now fit a logit model in order to predict Direction using Lag1-Lag5 and Volume with the glm() function
 glm.fit <- glm(direction ~ lag1 + lag2 + lag3 + lag4 + lag5 + volume, 
-               data=Smarket, family="binomial") #The family="binomial" argument tells R we are running a logistic regression
+               data=Smarket, family="binomial") 
+#The family="binomial" argument tells R we are running a logistic regression
 summary(glm.fit)
 summary(glm.fit)$coef
 
@@ -40,20 +43,26 @@ summary(glm.fit)$coef
 #Take a look at the coefficient for lag1 - it is negative, which implies that positive returns yesterday mean less chance of stock increase today
   #However, the p-value of lag1 (0.15) is kind of large, so there's not clear evidence of this relation being true
 
-#Because our output is in log-odds, we need to use the option type="response" when making predictions if we want P(Y=1|X)
+#Because our output is in log-odds, 
+#we need to use the option type="response" when making predictions if we want P(Y=1|X)
 glm.probs <- predict(glm.fit, type="response")
 glm.probs[1:10]
-
 #To make sure that these probabilities are for the market going Up, check how R codes direction - we need to know that Y=1 implies up
 contrasts(direction)
 
-#Instead of looking at these probabilties one by one, we can set a threshold to tell us what our observations predict about the market
+#Instead of looking at these probabilities one by one, we can set a threshold to tell us what our observations predict about the market
 glm.pred <- rep("Down", 1250)
 glm.pred[glm.probs>.5] = "Up"
+#we need to decide threshold probability to assign predicted probability to class
+glm.pred_class <- as.factor(ifelse(predict(glm.fit, type="response")>0.5,'Up','Down'))
+glm.pred_class[1:10]
 
 #Now that we've got predicted values and true values of direction, we can create a confusion matrix to assess accuracy
 table(glm.pred, direction)
+table(glm.pred_class, direction)
+#calculate error rate/accuracy
 mean(glm.pred==direction)
+
 
 ### Pause for Analysis ###
 #The output of the mean() function tells us the fraction of days that our model predicted correctly - 52.16% of the time
@@ -75,8 +84,7 @@ glm.fit <- glm(direction ~ lag1 + lag2 + lag3 + lag4 + lag5 + volume, data = Sma
 glm.probs <- predict(glm.fit, Smarket.2005, type = "response")
 
 #Create Yes/No predictions just as we did with the previous model
-glm.pred = rep("Down", length(glm.probs))
-glm.pred[glm.probs>.5] = "Up"
+glm.pred = as.factor(ifelse(glm.probs>.5,"Up","Down"))
 
 ### Coding Tip ###
 #For better reproducibility of your code, it's usually a good idea to refrain from using explicit numbers, like we did in line 48 with glm.pred
@@ -86,6 +94,7 @@ glm.pred[glm.probs>.5] = "Up"
 
 table(glm.pred, direction.2005)
 mean(glm.pred == direction.2005)
+confusionMatrix(glm.pred,direction.2005)
 
 ### Pause for Analysis ###
 #The results aren't that great - the test error rate is 52%
@@ -95,11 +104,12 @@ mean(glm.pred == direction.2005)
 glm.fit = glm(direction ~ lag1 + lag2, data = Smarket, family = "binomial", subset = train)
 glm.probs = predict(glm.fit, Smarket.2005, type = "response")
 
-glm.pred <- rep("Down", length(glm.probs))
-glm.pred[glm.probs>.5] = "Up"
+glm.pred = as.factor(ifelse(glm.probs>.5,"Up","Down"))
+
 
 table(glm.pred, direction.2005)
 mean(glm.pred == direction.2005)
+confusionMatrix(glm.pred,direction.2005)
 
 ### Pause for Analysis ###
 #Results are a little better - 55.95% of our observations were predicted correctly by the model
@@ -117,11 +127,11 @@ lda.fit
 ### Pause for Analysis ###
 #The output first tells us that 49.19% of our training data corresponds to days where the market went down, and 50.8% went up
 #The group means is a cross-tabulation of the means of the predictors for each level of the dependent variable, direction
-#Lastly, the coefficients of linear discriminants gives us the linear combination of lag1 and lag2 that create the decision boundary
+#Lastly, the coefficients of linear discriminant give us the linear combination of lag1 and lag2 that create the decision boundary
   #If the expression -.64*lag1 - .5135*lag2 is large, the LDA classifier will predict a market increase
   #Likewise, if the above expression is small, the LDA classifier will predict a market decrease
 
-#The plot() function produces plots of the linear discriminants, obtained by plugging in values of lag1 and lag2 for each of the training obs.
+#The plot() function produces plots of the linear discriminant, obtained by plugging in values of lag1 and lag2 for each of the training obs.
 plot(lda.fit)
 
 ### Pause for Analysis ###
@@ -130,17 +140,17 @@ plot(lda.fit)
     #Because there are very few extreme values in these distributions, the model has a tough time predicting market movement in either class
 
 #Now we make some predictions, and see how our results compare to those of the logistic regression
-lda.pred = predict(lda.fit, Smarket.2005)
+lda.pred = predict(lda.fit, Smarket.2005) #default threshold 0.5
 names(lda.pred) 
   #Notice the output of lda.pred:
     #"class" tells us the prediction of the LDA
-    #"posterior" is a matrix of probailities of the observations belonging to that class
-    #"x" contains the linear discrminants
+    #"posterior" is a matrix of probabilities of the observations belonging to that class
+    #"x" contains the linear discriminant
 
 lda.class = lda.pred$class
 table(lda.class, direction.2005)
 mean(lda.class==direction.2005) #The mean is pretty much identical to that of the logistic regression!
-
+confusionMatrix(lda.class,direction.2005)
 ### End of 4.6.3 ###
 
 ### 4.6.4 - Quadratic Discriminant Analysis ###
@@ -151,13 +161,27 @@ qda.fit <- qda(direction ~ lag1 + lag2, data = Smarket, subset = train)
 qda.fit # Notice that the qda() function does not report the coefficients of the linear discriminants
 
 #Make the same usual predictions
+names(predict(qda.fit, Smarket.2005))
 qda.class <- predict(qda.fit, Smarket.2005)$class
 table(qda.class, direction.2005)
-mean(qda.class==direction.2005) #Our mean has increased to about 60%, which suggests the quadratic form assumed by QDA better fits the relationship
-
+mean(qda.class==direction.2005) 
+#Our mean has increased to about 60%, which suggests the quadratic form assumed by QDA better fits the relationship
+confusionMatrix(qda.class,direction.2005)
 ### End of 4.6.4 ###
 
 ### 4.6.5 K-Nearest Neighbors ###
+library(e1071)
+nb.fit <- naiveBayes(direction ~ lag1+lag2, data=Smarket, subset=train)
+nb.fit
+#The output contains estimated mean and standard deviation for each variable in each class
+nb.class <- predict(nb.fit, Smarket.2005)
+confusionMatrix(nb.class,direction.2005)
+#Generate estimates of the probability that each observation belongs to a particular class
+nb.preds <- predict(nb.fit, Smarket.2005, type="raw")
+head(data.frame(nb.preds))
+
+
+### 4.6.6 K-Nearest Neighbors ###
 #Objective - perform KNN using the knn() function, which is part of the class library
 
 #The syntax for knn() is different from the commands that we have used in the past;
@@ -179,15 +203,15 @@ set.seed(1)
 knn.pred <- knn(train.X, test.X, train.direction, k=1)
 table(knn.pred, direction.2005)
 mean(knn.pred==direction.2005)
-
+confusionMatrix(knn.pred,direction.2005)
 #We only used one nearest neighbor, so obviously the predictive power isn't great. Let's try it with k=3
 knn.pred <- knn(train.X, test.X, train.direction, k=3)
 table(knn.pred, direction.2005)
 mean(knn.pred==direction.2005)
 
-###### End of 4.6.5 ######
+###### End of 4.6.6 ######
 
-###### 4.6.6 - An Application to Caravan Insurance Data ######
+###### 4.6.7 - An Application to Caravan Insurance Data ######
 #Objective - Use KNN to make predictions as to whether or not car insurance will be bought
   #We will be using the Caravan data set found in the ISLR library
 
@@ -195,8 +219,9 @@ mean(knn.pred==direction.2005)
 dim(Caravan)
 colnames(Caravan) <- tolower(colnames(Caravan))
 attach(Caravan)
-sapply(Caravan, class) #check the class of each variable to see which are categorical and which are continuous
-
+#check the class of each variable to see which are categorical and which are continuous
+sapply(Caravan, class)
+glimpse(Caravan)
 summary(purchase)
 
 ### Pause for quick note ###
@@ -209,7 +234,6 @@ summary(purchase)
 standardized.x <- scale(Caravan[,-86])
 var(Caravan[,1])
 var(Caravan[,2])
-
 var(standardized.x[,1])
 var(standardized.x[,2])
 
@@ -217,7 +241,6 @@ var(standardized.x[,2])
 test <- 1:1000
 train.x <- standardized.x[-test,]
 test.x <- standardized.x[test,]
-
 train.y <- purchase[-test]
 test.y <- purchase[test]
 
@@ -229,7 +252,6 @@ mean(test.y!="No")
 ### Pause for analysis ###
 #It seems like we've got a solid classifier - the test error rate is only 11.8%!
 #However, only 6% of people actually bought insurance, so we could have an error rate down to 6% if we changed the classifier to always predict No
-
 table(knn.pred, test.y)
 mean(knn.pred == test.y)
 
@@ -244,7 +266,6 @@ mean(knn.pred == test.y)
 
 #Now that we have our knn predictions, let's compare it to a logistic regression model using .5 as a cutoff
 glm.fit <- glm(purchase ~., data = Caravan, family = binomial, subset = -test)
-
 glm.probs <- predict(glm.fit, Caravan[test,], type = "response")
 glm.pred <- rep("No", 1000)
 glm.pred[glm.probs>.5] <- "Yes"
@@ -255,8 +276,40 @@ mean(glm.pred == test.y)
 #We actually did a terrible job predicting people buying the insurance, they're all wrong! Change to cutoff probability to see if we get better accuracy
 glm.pred <- rep("No", 1000)
 glm.pred[glm.probs>.25] <- "Yes"
-
 table(glm.pred, test.y)
 mean(glm.pred == test.y)
 
-###### End of 4.6.6 ######
+###### End of 4.6.7 ######
+
+###### 4.6.8 - Poisson Regression ######
+library(ISLR2)
+attach(Bikeshare)
+dim(Bikeshare)
+glimpse(Bikeshare)
+names(Bikeshare)
+#fit normal linear model
+mod.lm <- lm(bikers~mnth+hr+workingday+temp+weathersit,
+             data=Bikeshare)
+
+summary(mod.lm)
+#same fitting and model
+#coefficient estimates are different, beacause the last level of either mnth or hr, 
+#equals the negative of the sum of the coefficient estimates for all the other levels
+#e.g. coefficient -46.0871 for mnth1, meaning that holding all other variables constant,
+#there are 46 riders less in Jan than the yearly average.
+contrasts(Bikeshare$hr) = contr.sum(24)
+contrasts(Bikeshare$mnth) = contr.sum(12)
+mod.lm2 <- lm(bikers~mnth+hr+workingday+temp+weathersit,
+              data=Bikeshare)
+
+summary(mod.lm2)
+
+#check if two models are the same - sum of squared difference is 0 or not
+all.equal(predict(mod.lm),predict(mod.lm2))
+
+
+
+
+
+
+

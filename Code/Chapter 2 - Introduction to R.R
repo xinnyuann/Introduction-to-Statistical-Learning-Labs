@@ -1,4 +1,4 @@
-#This script corresponds with Chapter 2 of Inroduction to Statistical Learning
+#This script corresponds with Chapter 2 of Introduction to Statistical Learning
 #Author : William Morgan
 #2.3 Lab: Introduction to R
 library(ISLR)
@@ -57,7 +57,7 @@ sqrt(var(y))
 sd(y)
 
 ##### END OF SECTION 1 ######
-
+rm(list=ls())
 ##### SECTION 2: Graphics ######
 #The plot() function is the quickest way to plot data; plot(x,y) will give us a scatter plot between x and y
 x <- rnorm(100)
@@ -97,7 +97,8 @@ persp(x,y,fa, theta=30, phi=40)
 persp(x,y,fa, theta=30, phi=70)
 
 ##### END OF SECTION 2 #####
-
+dev.off()
+rm(list=ls())
 ##### SECTION 3: Loading and Indexing Data #####
 A <- matrix(1:16, 4,4)
 
@@ -117,19 +118,21 @@ A[-c(1,3),]
 dim(A)
 
 #We begin by loading the Auto dataset taken from the ISLR website; it is saved in csv format so we must use read.csv()
-auto <- read.csv("Data\Auto.csv")
+# auto <- read.csv("Data/Auto.csv")
+auto <- read.csv("Data/Auto.csv", header = T, na.strings = "?", stringsAsFactors = T)
 fix(auto) #quick visual inspection
 dim(auto) #get an idea of how large this dataset is
 names(auto) #check out the names of the variables in this data
-
+head(auto)
+View(auto)
 #Deal with missing observations by omitting them
 auto <- na.omit(auto)
-
+dim(auto)
 #Let's begin visualizing some of this data
 attach(auto) #attach() allows the user to call on the column names of auto directly
 plot(cylinders, mpg)
 
-cylinders <- as.factors(cylinders) #This variable is more appropriately interpreted as a categorical variable
+cylinders <- as.factor(cylinders) #This variable is more appropriately interpreted as a categorical variable
 plot(cylinders, mpg) #Now that cylinders is a factor, plot() will output a boxplot
 plot(cylinders, mpg, col="red")
 plot(cylinders, mpg, col="red", varwidth=T)
@@ -149,3 +152,6 @@ identify(horsepower, mpg, name)
 
 #summary() gives a numerical summary of each variable in a data set
 summary(auto)
+
+rm(list=ls())
+dev.off()
